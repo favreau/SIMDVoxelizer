@@ -1,4 +1,3 @@
-
 TASK_CXX=../tasksys.cpp
 TASK_LIB=-lpthread
 TASK_OBJ=objs/tasksys.o
