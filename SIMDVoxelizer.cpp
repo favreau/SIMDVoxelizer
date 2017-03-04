@@ -57,19 +57,6 @@ void flattenChildren( const OctreeNode* node, uint32_t* offsetPerLevel,
                       uint32_t* flatOctreeIndex, float* flatOctreeData,
                       uint32_t level )
 {
-    /*std::cout<< "In level: " << level << " - "
-             << offsetPerLevel[ 0 ] << " "
-             << offsetPerLevel[ 1 ] << " "
-             << offsetPerLevel[ 2 ] << " "
-             << offsetPerLevel[ 3 ] << " "
-             << offsetPerLevel[ 4 ] << " "
-             << offsetPerLevel[ 5 ] << " "
-             << offsetPerLevel[ 6 ] << " "
-             << offsetPerLevel[ 7 ] << " "
-             << offsetPerLevel[ 8 ] << " "
-             << offsetPerLevel[ 9 ] << " "
-             << offsetPerLevel[ 10 ]
-             << std::endl;*/
     const std::vector< OctreeNode* > children = node->getChildren();
 
     if(( children.empty( )) || ( level == 0 ))
@@ -78,19 +65,6 @@ void flattenChildren( const OctreeNode* node, uint32_t* offsetPerLevel,
         flatOctreeData[ offsetPerLevel[ level ] * 4u + 1 ] = node->getCenter().y;
         flatOctreeData[ offsetPerLevel[ level ] * 4u + 2 ] = node->getCenter().z;
         flatOctreeData[ offsetPerLevel[ level ] * 4u + 3 ] = node->getValue();
-
-        /*if( node->getCenter().x > 256 )
-        {
-            std::cout<< "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
-        }
-        if( node->getCenter().y > 256 )
-        {
-            std::cout<< "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYY" << std::endl;
-        }*/
-        if( node->getCenter().z > 256 )
-        {
-            std::cout<< "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
-        }
 
         offsetPerLevel[ level ] += 1u;
         return;
@@ -107,8 +81,6 @@ void flattenChildren( const OctreeNode* node, uint32_t* offsetPerLevel,
     for( const OctreeNode* child : children )
         flattenChildren( child, offsetPerLevel, flatOctreeIndex, flatOctreeData,
                          level - 1u );
-
-    //std::cout<<"Ok" << std::endl;
 }
 
 int main( int argc, char* argv[] )
@@ -169,11 +141,6 @@ int main( int argc, char* argv[] )
               << minx << "," << miny << "," << minz << "] ["
               << maxx << "," << maxy << "," << maxz << "]" << std::endl;
 
-    // !! DANGER !! THIS IS WRONG !!
-    //size_t x = (maxx - minx) / voxelSize;
-    //size_t y = (maxy - miny) / voxelSize;
-    //size_t z = (maxz - minz) / voxelSize;
-
     // **************** Octree creations *******************
     // *****************************************************
     glm::uvec3 octreeSize( pow2roundup( std::ceil((maxx - minx) / voxelSize )),
@@ -198,7 +165,7 @@ int main( int argc, char* argv[] )
     uint32_t octreeDepth = std::log2( maxOctreeSize ) + 1u;
     std::vector< OctreeLevelMap > octree( octreeDepth );
 
-    std::cout<<"DEPTH: " << octreeDepth << " " << octree.size() << std::endl;
+    std::cout<<"Depth: " << octreeDepth << " " << octree.size() << std::endl;
 
     for( uint32_t i = 0; i < events.size(); i += 5 )
     {
@@ -223,12 +190,6 @@ int main( int argc, char* argv[] )
                                         divisor * ( ypos / divisor + 0.5f ),
                                         divisor * ( zpos / divisor + 0.5f ));
 
-                /*if( level == 10 )
-                {
-                    std::cout<< "Center: " << center.x << " " << center.y << " " << center.z
-                             << " pos: " << xpos << " " << ypos << " " << zpos << std::endl;
-                }*/
-
                 const uint64_t nBlock = maxOctreeSize / divisor;
                 const uint64_t index = std::floor( xpos / divisor ) +
                                        nBlock * std::floor( ypos / divisor ) +
@@ -239,12 +200,6 @@ int main( int argc, char* argv[] )
                 auto it = octree[ level ].find( index );
                 if( it == octree[ level ].end( ))
                 {
-                    /*if( level == 2 )
-                        std::cout << "ROOT: " << index << " " << divisor
-                                  << " " << xpos << " " <<ypos << " " << zpos
-                                  << " " << indexX << " " <<indexY << " " << indexZ
-                                  << " center: " << center.x << " " << center.y << " " << center.z
-                                  << std::endl;*/
                     octree[ level ].insert(
                                 OctreeLevelMap::value_type(
                                     index, OctreeNode( center, size )));
@@ -278,7 +233,7 @@ int main( int argc, char* argv[] )
     for( uint32_t i = 0; i < octree.size(); ++i )
         std::cout<< "Number of leaves ["<<i<<"]: " << octree[i].size() << std::endl;
 
-    std::cout<<"MAX OCTREE SIZE: " << maxOctreeSize << std::endl;
+    std::cout<<"Max Octree Size: " << maxOctreeSize << std::endl;
 
     std::cout<<"x: " << ( maxx - minx ) / voxelSize
              <<" y: " << ( maxy - miny ) / voxelSize
@@ -297,7 +252,7 @@ int main( int argc, char* argv[] )
     {
         offsetPerLevel[ i - 1u ] = previousOffset + octree[ i ].size();
         previousOffset = offsetPerLevel[ i - 1u ];
-        std::cout<< "LEVEL " << i - 1 << " OFFSET: " << offsetPerLevel[i - 1] << std::endl;
+        std::cout<< "Level " << i - 1 << " Offset: " << offsetPerLevel[i - 1] << std::endl;
     }
 
     uint32_t totalNodeNumber = 0;
@@ -314,12 +269,6 @@ int main( int argc, char* argv[] )
     //The root node
     flattenChildren( &(octree[ octreeDepth - 1u ].at( 0 )), offsetPerLevel, flatOctreeIndex, flatOctreeData, octreeDepth - 1u );
 
-    //for( uint32_t i = 0; i < 100; ++i )
-    //    std::cout<< i << " index: " << flatOctreeIndex[ i ] << std::endl;
-
-    //for( uint32_t i = 0; i < 10000; ++i )
-    //    std::cout<< i << " data: " << flatOctreeData[ i ] << std::endl;
-
     // **************** Octree flattening end *******************
     // **********************************************************
 
@@ -332,21 +281,8 @@ int main( int argc, char* argv[] )
     std::cout << "Output file       : " << outputFile << std::endl;
     std::cout << "--------------------------------------------" << std::endl;
 
-    /*std::cout << "Volume dimensions ["
-              << x << " " << y << " " << z << "] "
-              << x * y * z / 1024 / 1024 << " Mb"
-              << std::endl;*/
-
-    /*float* volume = new float[ volume_size ];
-
-    memset(volume, 0, sizeof(float) * volume_size);
-
-    SIMDVoxelizer_ispc(
-        voxelSize, x, y, z, minx, miny, minz, cutoffDistance, events.data(), events.size(), volume );*/
-
     float* volume = new float[ volume_size ];
-    //memset(volume, 0, sizeof(float) * volume_size);
-    std::cout<<"TEST1" << std::endl;
+    memset(volume, 0, sizeof(float) * volume_size);
 
     SIMDSparseVoxelizer_ispc( span, voxelSize, maxOctreeSize, flatOctreeIndex, flatOctreeData, volume );
 
@@ -373,7 +309,6 @@ int main( int argc, char* argv[] )
         float normalizedValue = (volume[i] - minValue) * a;
         volumeAsChar[i] = (uint8_t)normalizedValue;
     }
-    std::cout<<"TEST4" << std::endl;
     std::cout << std::endl;
     std::cout << "--------------------------------------------" << std::endl;
 
@@ -381,7 +316,6 @@ int main( int argc, char* argv[] )
         outputFile.c_str(), std::ios::out | std::ios::binary);
     volumeFile.write( (char*)&volumeAsChar[0], sizeof(char) * volume_size );
     volumeFile.close();
-    std::cout<<"TEST5" << std::endl;
     delete [] volume;
     delete [] volumeAsChar;
 
