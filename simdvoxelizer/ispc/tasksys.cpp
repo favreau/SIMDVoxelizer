@@ -401,6 +401,7 @@ lAtomicCompareAndSwap32(volatile int32_t *v, int32_t newValue, int32_t oldValue)
 #endif // ISPC_IS_WINDOWS
 }
 
+#ifndef __APPLE__
 static inline int32_t 
 lAtomicAdd(volatile int32_t *v, int32_t delta) {
 #ifdef ISPC_IS_WINDOWS
@@ -409,6 +410,7 @@ lAtomicAdd(volatile int32_t *v, int32_t delta) {
     return __sync_fetch_and_add(v, delta);
 #endif
 }
+#endif // __APPLE__
 
 ///////////////////////////////////////////////////////////////////////////
 

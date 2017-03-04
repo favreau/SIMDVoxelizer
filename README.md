@@ -1,3 +1,4 @@
+### Introduction
 SIMDVoxelizer is a CPU-based voxalizer taking advantage of vectorization units to speed up creation
 of 8bit raw volumes.
 
@@ -16,10 +17,11 @@ The `<output_file>` is suffixed by the size of the volume.
 
 ![Example](images/SIMDVoxelizer.png)
 
-SIMDVoxelizer makes use of the [Intel ISPC compiler](https://ispc.github.io/) and requires ispc to
-be in the PATH.
+SIMDVoxelizer makes use of the [Intel ISPC compiler](https://ispc.github.io/).
 
-To build SIMDVoxelizer, simply run make in the source folder.
+### Build
 ```
-make
+mkdir Build
+cd Build
+cmake ..
 ```

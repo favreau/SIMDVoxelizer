@@ -19,20 +19,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "Octree.h"
+#include "OctreeNode.h"
 #include <stdint.h>
 #include <iostream>
 
 OctreeNode::OctreeNode( const glm::vec3 center, const float size )
-    : _center( center )
+    : _value( 0 )
+    , _center( center )
     , _size( size )
 {}
-
-OctreeNode::~OctreeNode()
-{
-    for( OctreeNode* nodePtr : _children )
-        delete nodePtr;
-}
 
 void OctreeNode::setChild( OctreeNode* child )
 {
@@ -41,7 +36,8 @@ void OctreeNode::setChild( OctreeNode* child )
 
 void OctreeNode::addValue( float value )
 {
-    _value += value;
+    if( value > _value )
+        _value = value;
 }
 
 const glm::vec3& OctreeNode::getCenter() const
@@ -49,7 +45,7 @@ const glm::vec3& OctreeNode::getCenter() const
     return _center;
 }
 
-const float OctreeNode::getValue() const
+float OctreeNode::getValue() const
 {
     return _value;
 }

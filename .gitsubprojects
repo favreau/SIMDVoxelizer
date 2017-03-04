@@ -1,0 +1,2 @@
+# -*- mode: cmake -*-
+git_subproject(glm https://github.com/g-truc/glm 9f49712)

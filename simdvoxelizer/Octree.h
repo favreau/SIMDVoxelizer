@@ -19,28 +19,49 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#ifndef _Octree_h_
+#define _Octree_h_
+
 #include <vector>
 #include <glm/glm.hpp>
 
-class OctreeNode
+#include "OctreeNode.h"
+
+class Octree
 {
 public:
-    OctreeNode( const glm::vec3 center, const float size );
-    ~OctreeNode();
+    Octree( const std::vector<float>& events, float voxelSize );
+    ~Octree();
 
-    void addValue( const float value );
-    void setChild( OctreeNode* child );
+    const glm::uvec3& getVolumeDim() const;
+    uint64_t getVolumeSize() const;
+    uint32_t getOctreeSize() const;
 
-    const std::vector< OctreeNode* >& getChildren() const;
-
-    const glm::vec3& getCenter() const;
-    const float getValue() const;
+    uint32_t* getFlatIndexes() const;
+    float* getFlatData() const;
 
 private:
-    float _value;
+    void _flattenChildren( const OctreeNode* node, uint32_t level );
 
-    glm::vec3 _center;
-    glm::vec3 _size;
+    inline uint32_t _pow2roundup( uint32_t x )
+    {
+        --x;
+        x |= x >> 1;
+        x |= x >> 2;
+        x |= x >> 4;
+        x |= x >> 8;
+        x |= x >> 16;
+        return x+1;
+    }
 
-    std::vector< OctreeNode* > _children;
+    glm::uvec3 _volumeDim;
+    uint64_t _volumeSize;
+    uint32_t _octreeSize;
+
+    uint32_t* _offsetPerLevel;
+
+    uint32_t* _flatIndexes;
+    float* _flatData;
 };
+
+#endif //_Octree_h_

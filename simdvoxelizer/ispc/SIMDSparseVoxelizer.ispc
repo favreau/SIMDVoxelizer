@@ -51,7 +51,7 @@ float treeWalker( const varying float x, const varying float y,
             sqrt( deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ );
 
         if( childDist >= cutoff )
-            voxelValue += dataInput[ index * 4 + 3 ] / (childDist * childDist);
+            voxelValue += dataInput[ index * 4 + 3 ] / ( childDist * childDist );
         else
             voxelValue += treeWalker( x, y, z, childDist, cutoff / 2.0,
                                       childIndex, indexInput, dataInput );
@@ -60,52 +60,65 @@ float treeWalker( const varying float x, const varying float y,
 }
 
 task void sparseVoxelize(
+    uniform unsigned int32 zEnd,
     uniform float voxelSize,
     uniform unsigned int32 xspan, uniform unsigned int32 yspan, varying unsigned int32 z,
     uniform unsigned int32 octreeSize,
+    uniform unsigned int32 volumeDimX,
+    uniform unsigned int32 volumeDimY,
+    uniform unsigned int32 volumeDimZ,
     uniform unsigned int32 indexInput[],
     uniform float dataInput[],
     uniform float output[])
 {
     const uniform unsigned int32 xstart = taskIndex0 * xspan;
-    const uniform unsigned int32 xend = min(xstart  + xspan, octreeSize);
+    const uniform unsigned int32 xend = min( xstart  + xspan, volumeDimX );
     const uniform unsigned int32 ystart = taskIndex1 * yspan;
-    const uniform unsigned int32 yend = min(ystart  + yspan, octreeSize);
+    const uniform unsigned int32 yend = min( ystart  + yspan, volumeDimY );
 
     for( int y = ystart; y < yend; ++y )
     {
         for( int x = xstart; x < xend; ++x )
         {
-            float cutoff = octreeSize * 1.5f;
+            float cutoff = octreeSize * 5.0f;
 
-            unsigned int32 index = x + y * octreeSize + z * octreeSize * octreeSize;
+            unsigned int64 index = x + y * volumeDimX + z * volumeDimX * volumeDimY;
 
             varying float dist = 0.f;
             varying unsigned int32 idx = 0;
-            if( index < octreeSize * octreeSize * octreeSize )
+            if(( index < volumeDimX * volumeDimY * zEnd ) && ( index < volumeDimX * volumeDimY * volumeDimZ ))
                 output[ index ] = treeWalker( x, y, z, dist, cutoff, idx, indexInput, dataInput );
         }
     }
 }
 
 export void SIMDSparseVoxelizer_ispc(
+    uniform unsigned int32 zBegin,
+    uniform unsigned int32 zEnd,
     uniform unsigned int32 span,
     uniform float voxelSize,
     uniform unsigned int32 octreeSize,
+    uniform unsigned int32 volumeDimX,
+    uniform unsigned int32 volumeDimY,
+    uniform unsigned int32 volumeDimZ,
     uniform unsigned int32 indexInput[],
     uniform float dataInput[],
     uniform float output[])
 {
-    foreach( z = 0 ... octreeSize + span - 1 )
+    foreach( z = zBegin ... zEnd + span - 1 )
     {
         const uniform unsigned int32 xspan = max( num_cores(), programCount );
         const uniform unsigned int32 yspan = span;
 
-        launch[ ( octreeSize + span - 1 ) / xspan, ( octreeSize + span - 1) / yspan ]
+        launch[ ( volumeDimX + span - 1 ) / xspan, ( volumeDimY + span - 1) / yspan ]
             sparseVoxelize(
+                zEnd,
                 voxelSize,
                 xspan, yspan, z,
                 octreeSize,
+                volumeDimX,
+                volumeDimY,
+                volumeDimZ,
                 indexInput,
                 dataInput,
                 output );
