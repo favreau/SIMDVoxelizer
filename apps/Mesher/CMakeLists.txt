@@ -17,7 +17,10 @@
 # along with this library; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+find_package(CGAL)
+
 set(MESHER_SOURCES main.cpp)
-set(MESHER_LINK_LIBRARIES PUBLIC SIMDVoxelizerCommon)
+set(MESHER_LINK_LIBRARIES PUBLIC SIMDVoxelizerCommon CGAL CGAL_Core CGAL_ImageIO
+    boost_thread boost_program_options gmp mpfr)
 
 common_application(Mesher)

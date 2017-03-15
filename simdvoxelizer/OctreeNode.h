@@ -25,24 +25,38 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+struct Event
+{
+    glm::vec3 position;
+    float value;
+};
+
 class OctreeNode
 {
 public:
     OctreeNode( const glm::vec3 center, const float size );
 
-    void addValue( const float value );
+    void addMaxValue( const float value );
+    void addEvent( const Event& event );
     void setChild( OctreeNode* child );
 
     const std::vector< OctreeNode* >& getChildren() const;
 
     const glm::vec3& getCenter() const;
-    float getValue() const;
+    float getMaxValue() const;
+    float getNumberOfEvents() const;
+    float getHalfDiagonal() const;
+    const std::vector< Event > getData() const;
 
 private:
-    float _value;
+    float _maxValue;
+    uint32_t _numberOfEvent;
+
+    std::vector< Event > _data; // x, y, z, value
 
     glm::vec3 _center;
     glm::vec3 _size;
+    float _halfDiagonal;
 
     std::vector< OctreeNode* > _children;
 };
