@@ -26,6 +26,9 @@
 
 #include "Mesher.h"
 
+
+namespace SMS = CGAL::Surface_mesh_simplification;
+
 bool compareByValue( const Event& e1, const Event& e2 )
 {
     return e1.value > e2.value;
@@ -34,9 +37,10 @@ bool compareByValue( const Event& e1, const Event& e2 )
 Mesher::Mesher( const std::string& inputFile, const float alpha,
                 const float angularBound, const float radialBound,
                 const float distanceBound, const float leafSize,
-                const float minRadiusForced )
+                const float minRadiusForced, float decimationRatio )
     : _nCgalQuery( 0 )
     , _maxEventValue( -std::numeric_limits<float>::max( ))
+    , _decimationRatio( decimationRatio )
     , _alpha( alpha )
     , _octree( nullptr )
 {
@@ -69,7 +73,6 @@ Mesher::Mesher( const std::string& inputFile, const float alpha,
             else
                 sortedEvents[ i / 5u ].value = std::pow( events[ i + 3u ], 4 );
         }
-
     }
     std::sort( sortedEvents.begin(), sortedEvents.end(), compareByValue );
     _outLiners = _extractOutLiners( sortedEvents, 300 );
@@ -137,6 +140,7 @@ Mesher::Mesher( const std::string& inputFile, const float alpha,
 
 void Mesher::mesh( const std::string& outputFile )
 {
+    float epsilon = 0.0000033;
     Tr tr;            // 3D-Delaunay triangulation
     C2t3 c2t3 (tr);   // 2D-complex in 3D-Delaunay triangulation
 
@@ -151,7 +155,9 @@ void Mesher::mesh( const std::string& outputFile )
     Surface_3 surface( getFieldValue,
                        Sphere_3( sphereCenter,
                                  _boundingBoxDiameter * _boundingBoxDiameter ),
-                                 0.00001);
+                                 epsilon);
+
+    std::cout<< " Dicotomy stop value: " << _boundingBoxDiameter * epsilon << std::endl;
 
     CGAL::Surface_mesh_default_criteria_3<Tr> criteria( _angularBound,
                                                         _radialBound,
@@ -164,6 +170,48 @@ void Mesher::mesh( const std::string& outputFile )
     std::ofstream output( outputFile + ".off" );
     CGAL::output_surface_facets_to_off( output, c2t3 );
     std::cout << "Final number of vertices: " << tr.number_of_vertices() << "\n";
+
+    // ************* MESH SIMPLIFICATION **************
+
+    if( _decimationRatio >= 1.0f )
+        return;
+
+    std::cout<<"decimating..." << std::endl;
+    SurfaceMesh mesh;
+    CGAL::output_surface_facets_to_polyhedron( c2t3, mesh );
+
+    // This is a stop predicate (defines when the algorithm terminates).
+    // In this example, the simplification stops when the number of undirected edges
+    // left in the surface mesh drops below the specified number (1000)
+    SMS::Count_ratio_stop_predicate< SurfaceMesh > stop( _decimationRatio );
+    /*int r = SMS::edge_collapse
+              ( mesh
+               ,stop
+               ,CGAL::parameters::vertex_index_map(get(CGAL::vertex_external_index, mesh ))
+                                 .halfedge_index_map  (get(CGAL::halfedge_external_index  , mesh ))
+                                 .get_cost (SMS::Edge_length_cost <SurfaceMesh>())
+                                 .get_placement(SMS::Midpoint_placement<SurfaceMesh>())
+              );*/
+    /*int r = SMS::edge_collapse
+              ( mesh
+               ,stop
+               ,CGAL::parameters::vertex_index_map(get(CGAL::vertex_external_index, mesh ))
+                                 .halfedge_index_map  (get(CGAL::halfedge_external_index  , mesh ))
+                                 .get_cost (SMS::LindstromTurk_cost<SurfaceMesh>())
+                                 .get_placement(SMS::Midpoint_placement<SurfaceMesh>())
+              );*/
+    int r = SMS::edge_collapse
+                  ( mesh
+                   ,stop
+                   ,CGAL::parameters::vertex_index_map(get(CGAL::vertex_external_index, mesh ))
+                                     .halfedge_index_map  (get(CGAL::halfedge_external_index  , mesh ))
+                                     .get_cost (SMS::LindstromTurk_cost<SurfaceMesh>())
+                                     .get_placement(SMS::LindstromTurk_placement<SurfaceMesh>())
+                  );
+    std::cout << "\nFinished...\n" << r << " edges removed.\n"
+              << ( mesh.size_of_halfedges() / 2 ) << " final edges.\n" ;
+    std::ofstream outputDecimated( outputFile + "_decimated.off" );
+    outputDecimated << mesh;
 }
 
 FT Mesher::_getFieldValue( const Point_3 p )

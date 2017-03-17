@@ -31,6 +31,7 @@ int main( int argc, char* argv[] )
     float distanceBound = -1.0f;
     float leafSize = -1.0f;
     float minRadius = -1.0f;
+    float decimationRatio = 1.0f;
 
     std::string outputFile;
     std::string inputFile;
@@ -44,6 +45,8 @@ int main( int argc, char* argv[] )
        "Input file containing the morphology.")
       ("output,o", po::value< std::string >( &outputFile )->required(),
        "Output file that will contain the mesh.\n")
+      ("simplification-ratio,s", po::value< float >( &decimationRatio )->default_value( 1.0f ),
+       "The decimation ratio by which the mesh must be decimated.\n")
       ("angular-bound,a", po::value< float >( &angularBound ),
        "A lower bound in degrees for the angles of mesh facets. If not specified "
        "this parameter is automatically computed.")
@@ -84,7 +87,7 @@ int main( int argc, char* argv[] )
         return 0;
     }
     Mesher mesher( inputFile, alpha, angularBound, radialBound, distanceBound,
-                   leafSize, minRadius );
+                   leafSize, minRadius, decimationRatio );
     mesher.mesh( outputFile );
 
     return 0;

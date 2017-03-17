@@ -24,15 +24,33 @@
 
 #include <memory>
 
+// 3d surface mesh generation
 #include <CGAL/Surface_mesh_default_triangulation_3.h>
 #include <CGAL/Complex_2_in_triangulation_3.h>
 #include <CGAL/make_surface_mesh.h>
 #include <CGAL/Implicit_surface_3.h>
+#include <CGAL/IO/output_surface_facets_to_polyhedron.h>
 #include <CGAL/IO/Complex_2_in_triangulation_3_file_writer.h>
+
+// Surface mesh simplificatoin
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Polyhedron_3.h>
+#include <CGAL/IO/Polyhedron_iostream.h>
+#include <CGAL/boost/graph/graph_traits_Polyhedron_3.h>
+#include <CGAL/Surface_mesh_simplification/edge_collapse.h>
+//#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Count_stop_predicate.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Count_ratio_stop_predicate.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_length_cost.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/LindstromTurk_cost.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Midpoint_placement.h>
 
 #include "Octree.h"
 
-// CGAL typedefs
+// Surface mesh simplificatoin
+typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
+typedef CGAL::Polyhedron_3<Kernel> SurfaceMesh;
+
+// 3d surface mesh generation typedefs
 typedef CGAL::Surface_mesh_default_triangulation_3 Tr;
 typedef CGAL::Complex_2_in_triangulation_3<Tr> C2t3;
 typedef Tr::Geom_traits GT;
@@ -47,7 +65,7 @@ class Mesher
 public:
     Mesher( const std::string& inputFile, float alpha, const float angularBound,
             const float radialBound, const float distanceBound,
-            const float leafSize, const float minRadius );
+            const float leafSize, const float minRadius, float decimationRatio );
 
     void mesh( const std::string& outputFile );
 
@@ -63,6 +81,7 @@ private:
     uint32_t _nCgalQuery;
 
     float _maxEventValue;
+    float _decimationRatio;
     float _boundingBoxDiameter;
     float _octreeLeafSize;
     float _alpha; // multiply the radius
