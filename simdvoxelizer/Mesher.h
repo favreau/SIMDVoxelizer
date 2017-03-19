@@ -38,11 +38,13 @@
 #include <CGAL/IO/Polyhedron_iostream.h>
 #include <CGAL/boost/graph/graph_traits_Polyhedron_3.h>
 #include <CGAL/Surface_mesh_simplification/edge_collapse.h>
-//#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Count_stop_predicate.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Count_ratio_stop_predicate.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_length_cost.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/LindstromTurk_cost.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Midpoint_placement.h>
+
+// Sefl-inrtersection test
+#include <CGAL/Polygon_mesh_processing/self_intersections.h>
 
 #include "Octree.h"
 
@@ -60,12 +62,16 @@ typedef GT::FT FT;
 typedef std::function<FT ( const Point_3& )> Function;
 typedef CGAL::Implicit_surface_3<GT, Function> Surface_3;
 
+// Self-inrtersection test
+typedef boost::graph_traits<SurfaceMesh>::face_descriptor face_descriptor;
+
 class Mesher
 {
 public:
     Mesher( const std::string& inputFile, float alpha, const float angularBound,
             const float radialBound, const float distanceBound,
-            const float leafSize, const float minRadius, float decimationRatio );
+            const float leafSize, const float minRadius, const float decimationRatio,
+            const float epsilon, const uint32_t targetFaceNumber );
 
     void mesh( const std::string& outputFile );
 
@@ -73,12 +79,13 @@ private:
 
     std::vector< Event > _extractOutLiners( std::vector< Event >& sortedEvents,
                                             uint32_t nOutLiners );
-    float _parseOctree( const OctreeNode* node, glm::vec3 location );
+    float _computeFieldFromOctree( const OctreeNode* node, glm::vec3 location );
     FT _getFieldValue( const Point_3 p );
 
     std::vector< Event > _outLiners;
 
     uint32_t _nCgalQuery;
+    uint32_t _targetFaceNumber;
 
     float _maxEventValue;
     float _decimationRatio;
@@ -89,6 +96,7 @@ private:
     float _angularBound;
     float _radialBound;
     float _distanceBound;
+    float _epsilon;
 
     glm::vec3 _somaPosition;
 

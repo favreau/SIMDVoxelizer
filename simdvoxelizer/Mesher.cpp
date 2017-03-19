@@ -28,6 +28,7 @@
 
 
 namespace SMS = CGAL::Surface_mesh_simplification;
+namespace PMP = CGAL::Polygon_mesh_processing;
 
 bool compareByValue( const Event& e1, const Event& e2 )
 {
@@ -37,11 +38,14 @@ bool compareByValue( const Event& e1, const Event& e2 )
 Mesher::Mesher( const std::string& inputFile, const float alpha,
                 const float angularBound, const float radialBound,
                 const float distanceBound, const float leafSize,
-                const float minRadiusForced, float decimationRatio )
+                const float minRadiusForced, float decimationRatio,
+                const float epsilon, const uint32_t targetFaceNumber )
     : _nCgalQuery( 0 )
+    , _targetFaceNumber( targetFaceNumber )
     , _maxEventValue( -std::numeric_limits<float>::max( ))
     , _decimationRatio( decimationRatio )
     , _alpha( alpha )
+    , _epsilon( epsilon )
     , _octree( nullptr )
 {
     std::vector<float> events;
@@ -104,8 +108,7 @@ Mesher::Mesher( const std::string& inputFile, const float alpha,
     _boundingBoxDiameter = std::max( std::max( max.x - min.x,
                                                max.y - min.y ),
                                                max.z - min.z );
-    std::cout << "Bounding diameter: " << _boundingBoxDiameter << std::endl;
-    std::cout << "Bounding box      ["
+    std::cout << "\nBounding box      ["
               << min.x << "," << min.y << "," << min.z << "] ["
               << max.x << "," << max.y << "," << max.z << "]" << std::endl;
 
@@ -115,32 +118,39 @@ Mesher::Mesher( const std::string& inputFile, const float alpha,
     _somaPosition = _outLiners[0].position;
 
     if( angularBound == -1.0f )
-        _angularBound = 10.0f;
+        _angularBound = 22.0f;
     else
         _angularBound = angularBound;
 
-    if( radialBound == -1.0f )
-        _radialBound = 1.0f;
-    else
-        _radialBound = radialBound;
-
     if( distanceBound == -1.0f )
-        _distanceBound = 1.0f;
+        _distanceBound = minRadiusForced * 0.15;
     else
         _distanceBound = distanceBound;
+
+    if( radialBound == -1.0f )
+        _radialBound = 20 * minRadiusForced;
+    else
+        _radialBound = radialBound;
 
     if( leafSize == -1.0f )
         _octreeLeafSize = 4.0;
     else
         _octreeLeafSize = leafSize;
 
+    std::cout << "CGAL's surface bounding diameter: " << _boundingBoxDiameter << std::endl;
+    std::cout << "CGAL's facet angular bound: " << _angularBound << std::endl;
+    std::cout << "CGAL's surface Delaunay balls upper bound radius: " << _radialBound << std::endl;
+    std::cout << "CGAL's distance bound between Delaunay ball center"
+                 " and facet circumcenter: " << _distanceBound << std::endl;
+    std::cout << "CGAL's dicotomy precision: " << _boundingBoxDiameter * _epsilon << std::endl;
+
+    std::cout << "Octree leaf size: " << _octreeLeafSize << std::endl;
     //!!!!!!!! Need an optimal leaf size to be computed!!
     _octree.reset( new Octree( sortedEvents, _octreeLeafSize, min, max ));
 }
 
 void Mesher::mesh( const std::string& outputFile )
 {
-    float epsilon = 0.0000033;
     Tr tr;            // 3D-Delaunay triangulation
     C2t3 c2t3 (tr);   // 2D-complex in 3D-Delaunay triangulation
 
@@ -155,9 +165,7 @@ void Mesher::mesh( const std::string& outputFile )
     Surface_3 surface( getFieldValue,
                        Sphere_3( sphereCenter,
                                  _boundingBoxDiameter * _boundingBoxDiameter ),
-                                 epsilon);
-
-    std::cout<< " Dicotomy stop value: " << _boundingBoxDiameter * epsilon << std::endl;
+                                 _epsilon);
 
     CGAL::Surface_mesh_default_criteria_3<Tr> criteria( _angularBound,
                                                         _radialBound,
@@ -167,39 +175,32 @@ void Mesher::mesh( const std::string& outputFile )
     CGAL::make_surface_mesh(c2t3, surface, criteria, CGAL::Manifold_tag());
     std::cout<<"\nmeshing finished" << std::endl;
 
-    std::ofstream output( outputFile + ".off" );
+    std::string fileOriginal = outputFile + ".off";
+    std::ofstream output( fileOriginal );
     CGAL::output_surface_facets_to_off( output, c2t3 );
-    std::cout << "Final number of vertices: " << tr.number_of_vertices() << "\n";
 
     // ************* MESH SIMPLIFICATION **************
+
+    if( _targetFaceNumber > 0 )
+    {
+        _decimationRatio = (float)_targetFaceNumber / (float)c2t3.number_of_facets();
+    }
 
     if( _decimationRatio >= 1.0f )
         return;
 
-    std::cout<<"decimating..." << std::endl;
+    std::cout<<"decimating with ratio "<< _decimationRatio <<"..." << std::endl;
     SurfaceMesh mesh;
     CGAL::output_surface_facets_to_polyhedron( c2t3, mesh );
 
-    // This is a stop predicate (defines when the algorithm terminates).
-    // In this example, the simplification stops when the number of undirected edges
-    // left in the surface mesh drops below the specified number (1000)
+    bool intersecting = PMP::does_self_intersect(mesh,
+        PMP::parameters::vertex_point_map( get( CGAL::vertex_point, mesh )));
+
+    std::cout << (intersecting ? "There are self-intersections " : "There is no self-intersection ")
+              << "before the decimation process."<<std::endl;
+
     SMS::Count_ratio_stop_predicate< SurfaceMesh > stop( _decimationRatio );
-    /*int r = SMS::edge_collapse
-              ( mesh
-               ,stop
-               ,CGAL::parameters::vertex_index_map(get(CGAL::vertex_external_index, mesh ))
-                                 .halfedge_index_map  (get(CGAL::halfedge_external_index  , mesh ))
-                                 .get_cost (SMS::Edge_length_cost <SurfaceMesh>())
-                                 .get_placement(SMS::Midpoint_placement<SurfaceMesh>())
-              );*/
-    /*int r = SMS::edge_collapse
-              ( mesh
-               ,stop
-               ,CGAL::parameters::vertex_index_map(get(CGAL::vertex_external_index, mesh ))
-                                 .halfedge_index_map  (get(CGAL::halfedge_external_index  , mesh ))
-                                 .get_cost (SMS::LindstromTurk_cost<SurfaceMesh>())
-                                 .get_placement(SMS::Midpoint_placement<SurfaceMesh>())
-              );*/
+
     int r = SMS::edge_collapse
                   ( mesh
                    ,stop
@@ -208,22 +209,38 @@ void Mesher::mesh( const std::string& outputFile )
                                      .get_cost (SMS::LindstromTurk_cost<SurfaceMesh>())
                                      .get_placement(SMS::LindstromTurk_placement<SurfaceMesh>())
                   );
-    std::cout << "\nFinished...\n" << r << " edges removed.\n"
-              << ( mesh.size_of_halfedges() / 2 ) << " final edges.\n" ;
-    std::ofstream outputDecimated( outputFile + "_decimated.off" );
+    std::cout<<"decimation finished" << std::endl;
+    std::string fileDecimated = outputFile + "_decimated.off";
+    std::ofstream outputDecimated( fileDecimated );
     outputDecimated << mesh;
+
+    intersecting = PMP::does_self_intersect(mesh,
+        PMP::parameters::vertex_point_map( get( CGAL::vertex_point, mesh )));
+
+    std::cout << (intersecting ? "There are self-intersections" : "There is no self-intersection")
+              << " after the decimation process."<< std::endl;
+
+    std::vector<std::pair<face_descriptor, face_descriptor> > intersected_tris;
+    PMP::self_intersections( mesh, std::back_inserter( intersected_tris ),
+                             PMP::parameters::vertex_point_map( get( CGAL::vertex_point, mesh )));
+    std::cout << intersected_tris.size() << " pairs of triangles intersect." << std::endl;
+
+
+    std::cout << "Done. 2 files written: " << std::endl;
+    std::cout << "original  [V:" << tr.number_of_vertices() << " F:" << c2t3.number_of_facets()
+              << "] -> " << fileOriginal << std::endl;
+    std::cout << "decimated [V:" << mesh.size_of_vertices() << " F:" << mesh.size_of_facets()
+              << "] -> " << fileDecimated << std::endl;
 }
 
 FT Mesher::_getFieldValue( const Point_3 p )
 {
-    float threshold = 1.0f;
-
-    glm::vec3 location( p.x(), p.y(), p.z( ));
+    const glm::vec3 location( p.x(), p.y(), p.z( ));
     float value = 0;
     for( const Event& outLiner : _outLiners )
     {
-        glm::vec3 delta = glm::vec3( outLiner.position.x, outLiner.position.y,
-                                     outLiner.position.z ) - location;
+        const glm::vec3 delta = glm::vec3( outLiner.position.x, outLiner.position.y,
+                                           outLiner.position.z ) - location;
         float distSquared = delta.x * delta.x +
                             delta.y * delta.y +
                             delta.z * delta.z;
@@ -233,17 +250,18 @@ FT Mesher::_getFieldValue( const Point_3 p )
 
         value += outLiner.value / ( distSquared * distSquared );
     }
-    value += _parseOctree( _octree->getRoot(), location );
+    value += _computeFieldFromOctree( _octree->getRoot(), location );
 
     ++_nCgalQuery;
     if( _nCgalQuery % 50000 == 0 )
         std::cout <<"\rNumber of CGAL's oracle queries: "
                   << _nCgalQuery << std::flush;
 
+    const float threshold = 1.0f;
     return threshold - value;
 }
 
-float Mesher::_parseOctree( const OctreeNode* node, glm::vec3 location )
+float Mesher::_computeFieldFromOctree( const OctreeNode* node, glm::vec3 location )
 {
     std::vector< OctreeNode* > children = node->getChildren();
     if( children.empty( ))
@@ -252,7 +270,8 @@ float Mesher::_parseOctree( const OctreeNode* node, glm::vec3 location )
         float value = 0;
         for( const Event& event : events )
         {
-            glm::vec3 delta = glm::vec3( event.position.x, event.position.y, event.position.z ) - location;
+            const glm::vec3 delta = glm::vec3( event.position.x, event.position.y,
+                                               event.position.z ) - location;
             float distSquared = delta.x * delta.x +
                                 delta.y * delta.y +
                                 delta.z * delta.z;
@@ -268,14 +287,14 @@ float Mesher::_parseOctree( const OctreeNode* node, glm::vec3 location )
     float value = 0;
     for( OctreeNode* childNode : children )
     {
-        glm::vec3 delta = childNode->getCenter() - location;
+        const glm::vec3 delta = childNode->getCenter() - location;
         float childDist = sqrt( delta.x * delta.x + delta.y * delta.y +
                                 delta.z * delta.z ) - childNode->getHalfDiagonal();
         if( childDist < 0 )
             childDist = 0;
 
         if( childDist <= _alpha * _maxEventValue )
-            value += _parseOctree( childNode, location );
+            value += _computeFieldFromOctree( childNode, location );
     }
     return value;
 }

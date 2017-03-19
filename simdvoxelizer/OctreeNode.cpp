@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <iostream>
 
-OctreeNode::OctreeNode( const glm::vec3 center, const float size )
+OctreeNode::OctreeNode( const glm::vec3& center, const float size )
     : _maxValue( 0 )
     , _numberOfEvent( 0 )
     , _center( center )

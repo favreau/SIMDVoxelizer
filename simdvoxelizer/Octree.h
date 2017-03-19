@@ -36,10 +36,8 @@ public:
     Octree( const std::vector<Event>& events, float voxelSize, const glm::vec3& min, const glm::vec3& max );
     ~Octree();
 
-    uint32_t getOctreeSize() const;
-    float getValueAt( glm::vec3 pos ) const;
-
     const OctreeNode* getRoot() const;
+    uint32_t getOctreeSize() const;
 
 private:
     void _flattenChildren( const OctreeNode* node, uint32_t level );
@@ -57,8 +55,6 @@ private:
         return x+1;
     }
 
-    glm::uvec3 _volumeDim;
-    uint64_t _volumeSize;
     uint32_t _octreeSize;
     uint32_t _octreeDepth;
 

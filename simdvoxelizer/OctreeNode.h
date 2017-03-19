@@ -34,7 +34,7 @@ struct Event
 class OctreeNode
 {
 public:
-    OctreeNode( const glm::vec3 center, const float size );
+    OctreeNode( const glm::vec3& center, const float size );
 
     void addMaxValue( const float value );
     void addEvent( const Event& event );
@@ -52,7 +52,7 @@ private:
     float _maxValue;
     uint32_t _numberOfEvent;
 
-    std::vector< Event > _data; // x, y, z, value
+    std::vector< Event > _data;
 
     glm::vec3 _center;
     glm::vec3 _size;

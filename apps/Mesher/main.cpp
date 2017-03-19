@@ -30,23 +30,31 @@ int main( int argc, char* argv[] )
     float radialBound = -1.0f;
     float distanceBound = -1.0f;
     float leafSize = -1.0f;
-    float minRadius = -1.0f;
+    float minRadius = 0.1f;
     float decimationRatio = 1.0f;
+    float epsilon = 0.0000033f;
+    uint32_t targetFaceNumber = 0u;
 
     std::string outputFile;
     std::string inputFile;
 
     namespace po = boost::program_options;
-    po::options_description desc("Options");
+    po::options_description desc("");
 
     desc.add_options()
-      ("help,h", "Print help messages.")
+      ("help,h", "Print this help messages.")
       ("input,i", po::value< std::string >( &inputFile )->required(),
        "Input file containing the morphology.")
       ("output,o", po::value< std::string >( &outputFile )->required(),
        "Output file that will contain the mesh.\n")
       ("simplification-ratio,s", po::value< float >( &decimationRatio )->default_value( 1.0f ),
        "The decimation ratio by which the mesh must be decimated.\n")
+      ("target-faces,t", po::value< uint32_t >( &targetFaceNumber ),
+       "The target number of faces for the decimated mesh. This parameter overwrite the"
+       " --simplification-ratio parameter.\n")
+      ("min-radius", po::value< float >( &minRadius )->default_value( 0.1f ),
+       "All radii in the morphology smaller than the specified value will be "
+       "increased to that value.")
       ("angular-bound,a", po::value< float >( &angularBound ),
        "A lower bound in degrees for the angles of mesh facets. If not specified "
        "this parameter is automatically computed.")
@@ -58,12 +66,12 @@ int main( int argc, char* argv[] )
        "An upper bound for the distance between the circumcenter of a mesh facet "
        "and the center of a surface Delaunay ball of this facet. If not specified "
        "this parameter is automatically computed.\n")
+      ("epsilon,e", po::value< float >( &epsilon )->default_value( 0.0000033f ),
+       "Epsilon multiplyed by the radius of the bounding sphere is the precision at"
+       "which the dichotomy will stop.\n")
       ("leaf-size,l", po::value< float >( &leafSize ),
        "The size of the octree's leaves in morphology space. If not specified "
        "this parameter is automatically computed.")
-      ("min-radius", po::value< float >( &minRadius ),
-       "All radii in the morphology smaller than the specified value will be "
-       "increased to that value.")
       ("alpha", po::value< float >( &alpha )->default_value( 3.0f ),
        "Octree's nodes further than closest radius * alpha are discarded");
 
@@ -84,10 +92,18 @@ int main( int argc, char* argv[] )
     {
         std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
         std::cout << desc << std::endl;
-        return 0;
+        return 1;
     }
+
+    if( minRadius <= 0 )
+    {
+        std::cerr << " ERROR: min-radius is: " << minRadius
+                  <<". The algorithm will not converge." << std::endl;
+        return 1;
+    }
+
     Mesher mesher( inputFile, alpha, angularBound, radialBound, distanceBound,
-                   leafSize, minRadius, decimationRatio );
+                   leafSize, minRadius, decimationRatio, epsilon, targetFaceNumber );
     mesher.mesh( outputFile );
 
     return 0;
