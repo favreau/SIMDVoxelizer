@@ -41,7 +41,7 @@ Octree::Octree( const std::vector< Event >& events, float leafSize,
 
     std::cout<<"Octree depth: " << _octreeDepth << std::endl;
 
-    const uint32_t leafLevel = _octreeDepth - 1u;
+    const int32_t leafLevel = _octreeDepth - 1u;
     for( const Event& event : events )
     {
         const uint64_t xpos = std::floor(( event.position.x - min.x ) / leafSize );
@@ -65,33 +65,33 @@ Octree::Octree( const std::vector< Event >& events, float leafSize,
 
 
                 const uint64_t nBlock = _octreeSize / leafFactor;
-                const uint64_t index = std::floor( xpos / leafFactor ) +
-                                       nBlock * std::floor( ypos / leafFactor ) +
-                                       nBlock * nBlock * std::floor( zpos / leafFactor );
+                const uint64_t indexAtLevel = std::floor( xpos / leafFactor ) +
+                                              nBlock * std::floor( ypos / leafFactor ) +
+                                              nBlock * nBlock * std::floor( zpos / leafFactor );
 
                 const float size = leafSize * leafFactor;
 
-                auto itr = _octree[ level ].find( index );
+                auto itr = _octree[ level ].find( indexAtLevel );
                 if( itr == _octree[ level ].end( ))
                 {
                     _octree[ level ].insert(
                                 OctreeLevelMap::value_type(
-                                    index, OctreeNode( center, size )));
+                                    indexAtLevel, OctreeNode( center, size )));
                     newNode = true;
                 }
 
                 if( level == leafLevel )
                 {
-                    _octree[ level ].at( index ).addEvent( event );
+                    _octree[ level ].at( indexAtLevel ).addEvent( event );
                 }
                 else
-                    _octree[ level ].at( index ).addMaxValue( event.value );
+                    _octree[ level ].at( indexAtLevel ).addMaxValue( event.value );
 
                 if(( level != leafLevel ) && ( child != nullptr ))
-                    _octree[level].at( index ).setChild( child );
+                    _octree[level].at( indexAtLevel ).setChild( child );
 
                 if( newNode )
-                    child = &(_octree[ level ].at( index ));
+                    child = &(_octree[ level ].at( indexAtLevel ));
                 else
                     child = nullptr;
             }
@@ -102,15 +102,15 @@ Octree::Octree( const std::vector< Event >& events, float leafSize,
             {
                 const uint64_t leafFactor = std::pow( 2, leafLevel - level );
                 const uint64_t nBlock = _octreeSize / leafFactor;
-                const uint64_t index = std::floor( xpos / leafFactor ) +
-                                       nBlock * std::floor( ypos / leafFactor ) +
-                                       nBlock * nBlock * std::floor( zpos / leafFactor );
+                const uint64_t indexAtLevel = std::floor( xpos / leafFactor ) +
+                                              nBlock * std::floor( ypos / leafFactor ) +
+                                              nBlock * nBlock * std::floor( zpos / leafFactor );
                 if( level == leafLevel )
                 {
-                    _octree[ level ].at( index ).addEvent( event );
+                    _octree[ level ].at( indexAtLevel ).addEvent( event );
                 }
                 else
-                    _octree[ level ].at( index ).addMaxValue( event.value );
+                    _octree[ level ].at( indexAtLevel ).addMaxValue( event.value );
             }
         }
     }

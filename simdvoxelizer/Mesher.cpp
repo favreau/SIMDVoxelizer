@@ -201,7 +201,7 @@ void Mesher::mesh( const std::string& outputFile )
 
     SMS::Count_ratio_stop_predicate< SurfaceMesh > stop( _decimationRatio );
 
-    int r = SMS::edge_collapse
+    SMS::edge_collapse
                   ( mesh
                    ,stop
                    ,CGAL::parameters::vertex_index_map(get(CGAL::vertex_external_index, mesh ))
@@ -220,11 +220,116 @@ void Mesher::mesh( const std::string& outputFile )
     std::cout << (intersecting ? "There are self-intersections" : "There is no self-intersection")
               << " after the decimation process."<< std::endl;
 
+    // ************************** SELF-INTERSECTING FACES REMOVAL ***********************************
+
+    //std::vector<std::pair<Facet_handle, Facet_handle> > intersected_tris;
     std::vector<std::pair<face_descriptor, face_descriptor> > intersected_tris;
+
     PMP::self_intersections( mesh, std::back_inserter( intersected_tris ),
                              PMP::parameters::vertex_point_map( get( CGAL::vertex_point, mesh )));
-    std::cout << intersected_tris.size() << " pairs of triangles intersect." << std::endl;
 
+    while( !intersected_tris.empty( ))
+    {
+        std::cout << intersected_tris.size() << " pairs of triangles intersect." << std::endl;
+        std::cout << "Face number: " << mesh.size_of_facets() << std::endl; 
+        Halfedge_handle he = halfedge( intersected_tris[0].first, mesh ); 
+        //mesh.erase_facet( halfedge( intersected_tris[0].first, mesh ));
+        mesh.erase_facet( he ); 
+        if( !he->is_border( ))
+            mesh.erase_facet( he->opposite( ));
+
+        he = halfedge( intersected_tris[0].second, mesh );
+        mesh.erase_facet( he ); 
+        if( !he->is_border( ))
+            mesh.erase_facet( he->opposite( ));
+
+        std::cout << "Face number after: " << mesh.size_of_facets() << std::endl;  
+
+        //mesh.erase_facet( halfedge( intersected_tris[0].second, mesh )); 
+        //mesh.erase_connected_component( halfedge( intersected_tris[0].first, mesh ));        
+
+        //for( const auto& facePair : intersected_tris )
+        //{
+        //    if( is_valid( halfedge( facePair.first, mesh )))
+        //        mesh.erase_facet( halfedge( facePair.first, mesh ));
+        //}  
+
+        /*std::map< face_descriptor, uint32_t > occurances;
+        for( uint32_t i = 0; i < intersected_tris.size(); ++i )
+        {
+	    ++occurances[ intersected_tris[ i ].first ]; 
+        }
+        for( uint32_t i = 0; i < intersected_tris.size(); ++i )
+        {
+	    ++occurances[ intersected_tris[ i ].second ]; 
+        }
+        uint32_t maxCount = 0;
+        for( const auto& count : occurances )
+            maxCount = std::max( maxCount, count.second );*/
+
+        /*for( const auto& count : occurances )
+        {
+            if( count.second == maxCount )
+            {
+                std::cout<< "Erasing facet" << std::endl;
+                //mesh.erase_facet( halfedge( count.first, mesh ));
+                //mesh.make_hole( halfedge( count.first, mesh ));
+            }
+            break;
+        }*/
+
+        intersected_tris.clear();
+        PMP::self_intersections( mesh, std::back_inserter( intersected_tris ),
+                         PMP::parameters::vertex_point_map( get( CGAL::vertex_point, mesh )));
+
+        //mesh.erase_facet( halfedge( intersected_tris[0].first, mesh ));
+        //mesh.make_hole( halfedge( intersected_tris[0].first, mesh ));
+    } 
+
+    /*for( const auto& trianglePair : intersected_tris )
+    {
+        std::cout<<"Removing face"<< std::endl;
+        //mesh.erase_facet( halfedge( trianglePair.first, mesh ));
+        //mesh.erase_facet( halfedge( trianglePair.second, mesh ));  
+        //mesh.erase_facet( trianglePair.first );
+        //CGAL::remove_face( trianglePair.first, mesh );
+        //CGAL::remove_face( trianglePair.second, mesh );
+        //mesh.remove_face( trianglePair.first );
+    }*/
+    std::cout<<"Faces Removed!" << std::endl;
+
+    // ************************** HOLE FILLING **********************************
+
+    /*for( const auto& halfedge : halfedges( mesh ))
+    {
+        if( halfedge->is_border( ))
+        {
+            std::vector<Facet_handle>  patch_facets;
+            std::vector<Vertex_handle> patch_vertices; 
+            bool success = CGAL::cpp11::get<0>(
+                  CGAL::Polygon_mesh_processing::triangulate_refine_and_fair_hole(
+                  mesh,
+                  halfedge,
+                  std::back_inserter(patch_facets),
+                  std::back_inserter(patch_vertices),
+                  CGAL::Polygon_mesh_processing::parameters::vertex_point_map(get(CGAL::vertex_point, mesh)).
+                  geom_traits(Kernel())) );
+
+            
+            std::cout << " Number of facets in constructed patch: " << patch_facets.size() << std::endl;
+            std::cout << " Number of vertices in constructed patch: " << patch_vertices.size() << std::endl;
+            std::cout << " Fairing : " << (success ? "succeeded" : "failed") << std::endl;
+        }
+    }*/    
+
+    // ************************** HOLE FILLING **********************************
+
+    std::string fileRemoved = outputFile + "_decimated_removed.off";
+    std::ofstream outputRemoved( fileRemoved );
+    std::cout<< "Writing file..." << std::endl;
+    outputRemoved << mesh;
+
+    std::cout<<"File written!" << std::endl;
 
     std::cout << "Done. 2 files written: " << std::endl;
     std::cout << "original  [V:" << tr.number_of_vertices() << " F:" << c2t3.number_of_facets()

@@ -46,6 +46,9 @@
 // Sefl-inrtersection test
 #include <CGAL/Polygon_mesh_processing/self_intersections.h>
 
+// Hole filling
+#include <CGAL/Polygon_mesh_processing/triangulate_hole.h>
+
 #include "Octree.h"
 
 // Surface mesh simplificatoin
@@ -64,6 +67,12 @@ typedef CGAL::Implicit_surface_3<GT, Function> Surface_3;
 
 // Self-inrtersection test
 typedef boost::graph_traits<SurfaceMesh>::face_descriptor face_descriptor;
+typedef boost::graph_traits<SurfaceMesh>::halfedge_descriptor halfedge_descriptor;
+
+// Hole filling
+typedef SurfaceMesh::Halfedge_handle    Halfedge_handle;
+typedef SurfaceMesh::Facet_handle       Facet_handle;
+typedef SurfaceMesh::Vertex_handle      Vertex_handle;
 
 class Mesher
 {
