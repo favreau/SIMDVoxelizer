@@ -38,6 +38,7 @@
 #include <CGAL/IO/Polyhedron_iostream.h>
 #include <CGAL/boost/graph/graph_traits_Polyhedron_3.h>
 #include <CGAL/Surface_mesh_simplification/edge_collapse.h>
+#include <CGAL/Surface_mesh_simplification/Edge_collapse_visitor_base.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Count_ratio_stop_predicate.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_length_cost.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/LindstromTurk_cost.h>
@@ -54,6 +55,7 @@
 // Surface mesh simplificatoin
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef CGAL::Polyhedron_3<Kernel> SurfaceMesh;
+typedef CGAL::Surface_mesh_simplification::Edge_profile<SurfaceMesh> Profile ;
 
 // 3d surface mesh generation typedefs
 typedef CGAL::Surface_mesh_default_triangulation_3 Tr;

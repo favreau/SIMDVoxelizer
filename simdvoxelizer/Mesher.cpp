@@ -30,6 +30,66 @@
 namespace SMS = CGAL::Surface_mesh_simplification;
 namespace PMP = CGAL::Polygon_mesh_processing;
 
+struct collapseVisitor : SMS::Edge_collapse_visitor_base<SurfaceMesh>
+{
+  collapseVisitor( Point_3* v0, Point_3* v1 )
+      : _v0( v0 )
+      , _v1( v1 )
+  {} 
+  /*// Called during the collecting phase for each edge collected.
+  void OnCollected( Profile const&, boost::optional<double> const& )
+  {
+    ++ stats->collected ;
+    std::cerr << "\rEdges collected: " << stats->collected << std::flush ;
+  }                
+  
+  // Called during the processing phase for each edge selected.
+  // If cost is absent the edge won't be collapsed.
+  void OnSelected(Profile const&          
+                 ,boost::optional<double> cost
+                 ,std::size_t             initial
+                 ,std::size_t             current
+                 )
+  {
+    ++ stats->processed ;
+    if ( !cost )
+      ++ stats->cost_uncomputable ;
+      
+    if ( current == initial )
+      std::cerr << "\n" << std::flush ;
+    std::cerr << "\r" << current << std::flush ;
+  }                               
+  
+  // Called for each edge which failed the so called link-condition,
+  // that is, which cannot be collapsed because doing so would
+  // turn the surface mesh into a non-manifold.
+  void OnNonCollapsable( Profile const& )
+  {
+    ++ stats->non_collapsable;
+  }*/                
+
+  // Called during the processing phase for each edge being collapsed.
+  // If placement is absent the edge is left uncollapsed.
+  void OnCollapsing(  Profile const &profile , boost::optional<Point> )
+  {
+      //std::cout << "v0: " << profile.v0()->point() << " v1: " << profile.v1()->point() << std::endl;
+      *_v0 = profile.v0()->point();
+      *_v1 = profile.v1()->point(); 
+      //std::cout<< x << std::endl; 
+      //hit->opposite()->vertex()->point( 
+      //std::cout<<"halfedge: " << &(*profile.v0_v1()) << std::endl;     
+  }   
+
+  // Called AFTER each edge has been collapsed
+  /*void OnCollapsed( Profile const&, Vertex_handle )
+  {
+    std::cout<<"Collapsed"<<std::endl;
+  }*/
+
+  Point_3* _v0;
+  Point_3* _v1;                
+};
+
 bool compareByValue( const Event& e1, const Event& e2 )
 {
     return e1.value > e2.value;
@@ -199,16 +259,53 @@ void Mesher::mesh( const std::string& outputFile )
     std::cout << (intersecting ? "There are self-intersections " : "There is no self-intersection ")
               << "before the decimation process."<<std::endl;
 
-    SMS::Count_ratio_stop_predicate< SurfaceMesh > stop( _decimationRatio );
 
-    SMS::edge_collapse
+    Point_3 v0;
+    Point_3 v1;
+    collapseVisitor visitor( &v0, &v1 );    
+
+    bool unfinished = true;
+    bool selfIntersecting = true;
+    double decimationStep = 0.5;
+    //float oldDecimationRatio = 1.0f;
+    SurfaceMesh oldMesh = mesh;
+    uint32_t remainingEdges = mesh.size_of_halfedges();
+    while( unfinished )
+    {
+        while( selfIntersecting )
+        {
+            mesh = oldMesh;
+            double decimationRatio = 1.0d - decimationStep;
+
+            if( decimationStep * remainingEdges <= 1.0d )
+            {
+                std::cout<<"Mark the edge " << v0 <<" - " << v1 <<" as non removable!"<< std::endl;
+            }
+
+            std::cout<< "Try decimating to ratio: " << decimationRatio << std::endl;          
+            SMS::Count_ratio_stop_predicate< SurfaceMesh > stop( decimationRatio );
+            SMS::edge_collapse
                   ( mesh
                    ,stop
                    ,CGAL::parameters::vertex_index_map(get(CGAL::vertex_external_index, mesh ))
                                      .halfedge_index_map  (get(CGAL::halfedge_external_index  , mesh ))
                                      .get_cost (SMS::LindstromTurk_cost<SurfaceMesh>())
                                      .get_placement(SMS::LindstromTurk_placement<SurfaceMesh>())
+                                     .visitor( visitor ) 
                   );
+ 
+            selfIntersecting = PMP::does_self_intersect(mesh,
+                PMP::parameters::vertex_point_map( get( CGAL::vertex_point, mesh )));
+            if( selfIntersecting )
+                decimationStep = decimationStep / 2.0d;  
+        }
+        oldMesh = mesh;
+        selfIntersecting = true;
+        decimationStep = 0.5;
+        remainingEdges = mesh.size_of_halfedges();  
+        std::cout << "decimated to [V:" << mesh.size_of_vertices() << " F:" << mesh.size_of_facets() << "] "<< std::endl;
+    }
+
     std::cout<<"decimation finished" << std::endl;
     std::string fileDecimated = outputFile + "_decimated.off";
     std::ofstream outputDecimated( fileDecimated );
@@ -232,16 +329,45 @@ void Mesher::mesh( const std::string& outputFile )
     {
         std::cout << intersected_tris.size() << " pairs of triangles intersect." << std::endl;
         std::cout << "Face number: " << mesh.size_of_facets() << std::endl; 
-        Halfedge_handle he = halfedge( intersected_tris[0].first, mesh ); 
+        
+        for( const auto& facePair : intersected_tris )
+        {
+            if( &(*facePair.first) )
+            {
+                Halfedge_handle h = halfedge( facePair.first, mesh );
+                std::cout<< "facet address: " << &(*h) << std::endl;
+                if( &(*h) )
+                {
+                    if( !h->is_border( ))
+                        mesh.erase_facet( h );
+                }
+	        std::cout<< "SUCCESS :)" << std::endl;
+            }
+            if( &(*facePair.second ) )
+            {
+                Halfedge_handle h = halfedge( facePair.second, mesh );
+                std::cout<< "facet address: " << &(*h) << std::endl;
+                if( &(*h) )
+                {
+                    if( !h->is_border( ))
+                    {
+                        std::cout<<"erasing" << std::endl;
+                        mesh.erase_facet( h );
+                    }
+                }
+                std::cout<< "SUCCESS :)" << std::endl;
+            }
+        }          
+
         //mesh.erase_facet( halfedge( intersected_tris[0].first, mesh ));
-        mesh.erase_facet( he ); 
+        /*mesh.erase_facet( he ); 
         if( !he->is_border( ))
             mesh.erase_facet( he->opposite( ));
 
         he = halfedge( intersected_tris[0].second, mesh );
         mesh.erase_facet( he ); 
         if( !he->is_border( ))
-            mesh.erase_facet( he->opposite( ));
+            mesh.erase_facet( he->opposite( ));*/
 
         std::cout << "Face number after: " << mesh.size_of_facets() << std::endl;  
 
