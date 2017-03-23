@@ -86,11 +86,13 @@ endmacro()
 
 set(SIMDVOXELIZERCOMMON_SOURCES
   ispc/tasksys.cpp
+  Mesher.cpp
   OctreeNode.cpp
   Octree.cpp
 )
 
 set(SIMDVOXELIZERCOMMON_PUBLIC_HEADERS
+  Mesher.h
   OctreeNode.h
   Octree.h
 )
@@ -106,6 +108,7 @@ INCLUDE_DIRECTORIES_ISPC(${SIMDVOXELIZER_INCLUDE_DIRS})
 ISPC_COMPILE(${SIMDVOXELIZERCOMMON_ISPC_SOURCES})
 list(APPEND SIMDVOXELIZERCOMMON_SOURCES ${ISPC_OBJECTS})
 
-set(SIMDVOXELIZERCOMMON_LINK_LIBRARIES PUBLIC glm pthread stdc++)
+set(SIMDVOXELIZERCOMMON_LINK_LIBRARIES PUBLIC glm pthread stdc++ CGAL
+    CGAL_Core CGAL_ImageIO boost_thread gmp mpfr)
 
 common_library(SIMDVoxelizerCommon)

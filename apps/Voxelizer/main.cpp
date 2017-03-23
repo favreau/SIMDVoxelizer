@@ -62,7 +62,7 @@ void flattenChildren( const OctreeNode* node, uint32_t* offsetPerLevel,
         flatOctreeData[ offsetPerLevel[ level ] * 4u ] = node->getCenter().x;
         flatOctreeData[ offsetPerLevel[ level ] * 4u + 1 ] = node->getCenter().y;
         flatOctreeData[ offsetPerLevel[ level ] * 4u + 2 ] = node->getCenter().z;
-        flatOctreeData[ offsetPerLevel[ level ] * 4u + 3 ] = node->getValue();
+        flatOctreeData[ offsetPerLevel[ level ] * 4u + 3 ] = node->getMaxValue();
 
         offsetPerLevel[ level ] += 1u;
         return;
@@ -70,7 +70,7 @@ void flattenChildren( const OctreeNode* node, uint32_t* offsetPerLevel,
     flatOctreeData[ offsetPerLevel[ level ] * 4u ] = node->getCenter().x;
     flatOctreeData[ offsetPerLevel[ level ] * 4u + 1 ] = node->getCenter().y;
     flatOctreeData[ offsetPerLevel[ level ] * 4u + 2 ] = node->getCenter().z;
-    flatOctreeData[ offsetPerLevel[ level ] * 4u + 3 ] = node->getValue();
+    flatOctreeData[ offsetPerLevel[ level ] * 4u + 3 ] = node->getMaxValue();
 
     flatOctreeIndex[ offsetPerLevel[ level ] * 2u ] =
         offsetPerLevel[ level - 1 ];
@@ -83,9 +83,9 @@ void flattenChildren( const OctreeNode* node, uint32_t* offsetPerLevel,
                          level - 1u );
 }
 
-int main( int argc, char* argv[] )
+int main( /*int argc, char* argv[]*/ )
 {
-    if( argc != 5 )
+    /*if( argc != 5 )
     {
         std::cerr << "usage: SIMDVoxelizer <voxel_size> <span> "
                   << "<input_file> <output_file>" << std::endl;
@@ -109,6 +109,32 @@ int main( int argc, char* argv[] )
         file.close();
     }
 
+    // Bounding box
+    glm::vec3 min;
+    min.x = std::numeric_limits<float>::max();
+    min.y = std::numeric_limits<float>::max();
+    min.z = std::numeric_limits<float>::max();
+
+    glm::vec3 max;
+    max.x = -std::numeric_limits<float>::max();
+    max.y = -std::numeric_limits<float>::max();
+    max.z = -std::numeric_limits<float>::max();
+
+    std::cout << "Nb of events      :" <<  events.size() / 5 << std::endl;
+    for( size_t i = 0; i < events.size(); i += 5 )
+    {
+        min.x = std::min( min.x, events[i] );
+        min.y = std::min( min.y, events[i+1] );
+        min.z = std::min( min.z, events[i+2] );
+
+        max.x = std::max( max.x, events[i] );
+        max.y = std::max( max.y, events[i+1] );
+        max.z = std::max( max.z, events[i+2] );
+    }
+
+    //erase the soma position ( padded with zeros )-> posX posY posZ 0.0f 0.0f
+    events.erase( events.begin(), events.begin() + 5 );
+
     std::cout << "--------------------------------------------" << std::endl;
     std::cout << "SIMDVoxelizer" << std::endl;
     std::cout << "--------------------------------------------" << std::endl;
@@ -118,7 +144,7 @@ int main( int argc, char* argv[] )
     std::cout << "Output file       : " << outputFile << std::endl;
     std::cout << "--------------------------------------------" << std::endl;
 
-    Octree morphoOctree( events, voxelSize );
+    Octree morphoOctree( events, voxelSize, min, max );
 
     uint64_t volumeSize = morphoOctree.getVolumeSize();
     glm::uvec3 volumeDim = morphoOctree.getVolumeDim();
@@ -168,7 +194,7 @@ int main( int argc, char* argv[] )
     std::ofstream volumeFile(
         outputFile.c_str(), std::ios::out | std::ios::binary);
     volumeFile.write( (char*)volumeAsChar.data(), sizeof(char) * volumeSize );
-    volumeFile.close();
+    volumeFile.close();*/
 
     return 0;
 }

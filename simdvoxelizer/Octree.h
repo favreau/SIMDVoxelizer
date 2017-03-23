@@ -23,28 +23,29 @@
 #define _Octree_h_
 
 #include <vector>
+#include <map>
 #include <glm/glm.hpp>
 
 #include "OctreeNode.h"
 
+typedef std::map< uint64_t, OctreeNode > OctreeLevelMap;
+
 class Octree
 {
 public:
-    Octree( const std::vector<float>& events, float voxelSize );
+    Octree( const std::vector<Event>& events, float voxelSize, const glm::vec3& min, const glm::vec3& max );
     ~Octree();
 
-    const glm::uvec3& getVolumeDim() const;
-    uint64_t getVolumeSize() const;
+    const OctreeNode* getRoot() const;
     uint32_t getOctreeSize() const;
-
-    uint32_t* getFlatIndexes() const;
-    float* getFlatData() const;
 
 private:
     void _flattenChildren( const OctreeNode* node, uint32_t level );
 
-    inline uint32_t _pow2roundup( uint32_t x )
+    inline int32_t _pow2roundup( int32_t x )
     {
+        if (x < 0)
+            return 0;
         --x;
         x |= x >> 1;
         x |= x >> 2;
@@ -54,14 +55,10 @@ private:
         return x+1;
     }
 
-    glm::uvec3 _volumeDim;
-    uint64_t _volumeSize;
     uint32_t _octreeSize;
+    uint32_t _octreeDepth;
 
-    uint32_t* _offsetPerLevel;
-
-    uint32_t* _flatIndexes;
-    float* _flatData;
+    std::vector< OctreeLevelMap > _octree;
 };
 
 #endif //_Octree_h_
