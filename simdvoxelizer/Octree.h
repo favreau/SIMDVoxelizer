@@ -22,46 +22,45 @@
 #ifndef _Octree_h_
 #define _Octree_h_
 
-#include <vector>
 #include <glm/glm.hpp>
+#include <vector>
 
 #include "OctreeNode.h"
 
-class Octree
-{
+class Octree {
 public:
-    Octree( const std::vector<float>& events, float voxelSize );
-    ~Octree();
+  Octree(const std::vector<float> &events, float voxelSize,
+         const glm::vec3 &minAABB, const glm::vec3 &maxAABB);
+  ~Octree();
 
-    const glm::uvec3& getVolumeDim() const;
-    uint64_t getVolumeSize() const;
-    uint32_t getOctreeSize() const;
+  const glm::uvec3 &getVolumeDim() const;
+  uint64_t getVolumeSize() const;
+  uint32_t getOctreeSize() const;
 
-    uint32_t* getFlatIndexes() const;
-    float* getFlatData() const;
+  uint32_t *getFlatIndexes() const;
+  float *getFlatData() const;
 
 private:
-    void _flattenChildren( const OctreeNode* node, uint32_t level );
+  void _flattenChildren(const OctreeNode *node, uint32_t level);
 
-    inline uint32_t _pow2roundup( uint32_t x )
-    {
-        --x;
-        x |= x >> 1;
-        x |= x >> 2;
-        x |= x >> 4;
-        x |= x >> 8;
-        x |= x >> 16;
-        return x+1;
-    }
+  inline uint32_t _pow2roundup(uint32_t x) {
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return x + 1;
+  }
 
-    glm::uvec3 _volumeDim;
-    uint64_t _volumeSize;
-    uint32_t _octreeSize;
+  glm::uvec3 _volumeDim;
+  uint64_t _volumeSize;
+  uint32_t _octreeSize;
 
-    uint32_t* _offsetPerLevel;
+  uint32_t *_offsetPerLevel;
 
-    uint32_t* _flatIndexes;
-    float* _flatData;
+  uint32_t *_flatIndexes;
+  float *_flatData;
 };
 
 #endif //_Octree_h_

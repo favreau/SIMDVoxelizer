@@ -52,6 +52,7 @@ float treeWalker( const varying float x, const varying float y,
 
         if( childDist >= cutoff )
             voxelValue += dataInput[ index * 4 + 3 ] / ( childDist * childDist );
+            //voxelValue += dataInput[ index * 4 + 3 ] / childDist;
         else
             voxelValue += treeWalker( x, y, z, childDist, cutoff / 2.0,
                                       childIndex, indexInput, dataInput );
