@@ -29,7 +29,6 @@
 #include <map>
 #include <simdvoxelizer/Octree.h>
 #include <simdvoxelizer/SIMDSparseVoxelizer_ispc.h>
-#include <simdvoxelizer/SIMDVoxelizer_ispc.h>
 #include <sstream>
 #include <string.h>
 #include <vector>
@@ -150,20 +149,25 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Compute volume information
+  const glm::vec3 sceneSize = maxAABB - minAABB;
+
+  // Double AABB size
+  glm::vec3 center = (minAABB + maxAABB) / 2.f;
+  minAABB = center - sceneSize * 0.75f;
+  maxAABB = center + sceneSize * 0.75f;
+  const glm::vec3 volumeOffset = minAABB;
+
   // Build acceleration structure
   Octree morphoOctree(events, voxelSize, minAABB, maxAABB);
   uint64_t volumeSize = morphoOctree.getVolumeSize();
   glm::uvec3 volumeDim = morphoOctree.getVolumeDim();
-
-  // Compute volume information
-  const glm::vec3 sceneSize = maxAABB - minAABB;
   const glm::vec3 volumeElementSpacing = sceneSize / glm::vec3(volumeDim);
-  const glm::vec3 volumeOffset = minAABB;
 
   std::cout << "--------------------------------------------" << std::endl;
   std::cout << "SIMDVoxelizer" << std::endl;
   std::cout << "--------------------------------------------" << std::endl;
-  std::cout << "Voxel size        : " << voxelSize << std::endl;
+  std::cout << "Element spacing   : " << voxelSize << std::endl;
   std::cout << "Span              : " << span << std::endl;
   std::cout << "Input file        : " << inputFile << std::endl;
   std::cout << "Output file       : " << outputFile << std::endl;
@@ -172,7 +176,7 @@ int main(int argc, char *argv[]) {
             << maxAABB.z << "]" << std::endl;
   std::cout << "Scene size        : [" << sceneSize.x << "," << sceneSize.y
             << "," << sceneSize.z << "]" << std::endl;
-  std::cout << "Scene center      : [" << volumeOffset.x << ","
+  std::cout << "Volume offset     : [" << volumeOffset.x << ","
             << volumeOffset.y << "," << volumeOffset.z << "]" << std::endl;
   std::cout << "Volume dimensions : [" << volumeDim.x << ", " << volumeDim.y
             << ", " << volumeDim.z << "] " << volumeSize << " bytes"
@@ -180,7 +184,7 @@ int main(int argc, char *argv[]) {
   std::cout << "--------------------------------------------" << std::endl;
 
   std::vector<float> volume(volumeSize, 0);
-  const uint32_t zLenght = 32;
+  const uint32_t zLenght = 8;
   for (uint32_t zOffset = 0; zOffset < volumeDim.z; zOffset += zLenght) {
     const size_t progress = float(zOffset) / float(volumeDim.z) * 100.f;
     std::cout << progress << "%\r";

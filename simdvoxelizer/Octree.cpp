@@ -43,10 +43,16 @@ Octree::Octree(const std::vector<float> &events, float voxelSize,
   // This octree is always cubic
   _octreeSize = std::max(std::max(octreeSize.x, octreeSize.y), octreeSize.z);
 
+  std::cout << "Octree size  : " << _octreeSize << std::endl;
+
   uint32_t octreeDepth = std::log2(_octreeSize) + 1u;
   std::vector<OctreeLevelMap> octree(octreeDepth);
 
-  std::cout << "DEPTH: " << octreeDepth << " " << octree.size() << std::endl;
+  std::cout << "Octree depth : " << octreeDepth << " " << octree.size()
+            << std::endl;
+
+  if (octreeDepth == 0)
+    return;
 
   for (uint32_t i = 0; i < events.size(); i += 5) {
     const uint64_t xpos = std::floor((events[i] - minAABB.x) / voxelSize);

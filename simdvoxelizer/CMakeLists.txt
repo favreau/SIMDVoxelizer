@@ -97,7 +97,6 @@ set(SIMDVOXELIZERCOMMON_PUBLIC_HEADERS
 
 set(SIMDVOXELIZERCOMMON_ISPC_SOURCES
   ispc/SIMDSparseVoxelizer.ispc
-  ispc/SIMDVoxelizer.ispc
 )
 
 include(ispc)
