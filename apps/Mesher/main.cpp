@@ -19,29 +19,29 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <simdvoxelizer/Octree.h>
 #include <simdvoxelizer/SIMDSparseVoxelizer_ispc.h>
 #include <simdvoxelizer/SIMDVoxelizer_ispc.h>
-#include <simdvoxelizer/Octree.h>
-#include <string.h>
-#include <cmath>
-#include <fstream>
-#include <vector>
-#include <map>
-#include <limits>
-#include <iostream>
 #include <sstream>
-#include <ctime>
-#include <cstdlib>
+#include <string.h>
+#include <vector>
 
 #if 0 // WORK IN PROGRESS
-#include <CGAL/Surface_mesh_default_triangulation_3.h>
-#include <CGAL/Surface_mesh_default_criteria_3.h>
 #include <CGAL/Complex_2_in_triangulation_3.h>
-#include <CGAL/IO/Complex_2_in_triangulation_3_file_writer.h>
-#include <fstream>
-#include <CGAL/make_surface_mesh.h>
 #include <CGAL/Gray_level_image_3.h>
+#include <CGAL/IO/Complex_2_in_triangulation_3_file_writer.h>
 #include <CGAL/Implicit_surface_3.h>
+#include <CGAL/Surface_mesh_default_criteria_3.h>
+#include <CGAL/Surface_mesh_default_triangulation_3.h>
+#include <CGAL/make_surface_mesh.h>
+#include <fstream>
 
 // default triangulation for Surface_mesher
 typedef CGAL::Surface_mesh_default_triangulation_3 Tr;
@@ -211,10 +211,9 @@ int main( int argc, char* argv[] )
     return 0;
 }
 #else
-int main( int , char* argv[] )
-{
-    std::cout << argv << std::endl;
-    return 1;
+int main(int, char *argv[]) {
+  std::cout << argv << std::endl;
+  return 1;
 }
 
 #endif

@@ -32,45 +32,45 @@ macro(CONFIGURE_ISPC)
 
   if(SIMDVOXELIZER_BUILD_ISA STREQUAL "ALL")
     set(SIMDVOXELIZER_ISPC_TARGET_LIST sse4 avx avx2)
-    if(SIMDVOXELIZER_BUILD_ENABLE_KNL)
+    if(ISPC_BUILD_ENABLE_KNL)
       set(SIMDVOXELIZER_ISPC_TARGET_LIST sse4 avx avx2 avx512knl-i32x16)
     endif()
-  elseif(SIMDVOXELIZER_BUILD_ISA STREQUAL "AVX512")
+  elseif(ISPC_BUILD_ISA STREQUAL "AVX512")
     set(SIMDVOXELIZER_ISPC_TARGET_LIST avx512knl-i32x16)
-  elseif(SIMDVOXELIZER_BUILD_ISA STREQUAL "AVX2")
+  elseif(ISPC_BUILD_ISA STREQUAL "AVX2")
     set(SIMDVOXELIZER_ISPC_TARGET_LIST avx2)
-  elseif(SIMDVOXELIZER_BUILD_ISA STREQUAL "AVX")
+  elseif(ISPC_BUILD_ISA STREQUAL "AVX")
     set(SIMDVOXELIZER_ISPC_TARGET_LIST avx)
-  elseif(SIMDVOXELIZER_BUILD_ISA STREQUAL "SSE")
+  elseif(ISPC_BUILD_ISA STREQUAL "SSE")
     set(SIMDVOXELIZER_ISPC_TARGET_LIST sse4)
   else ()
-    message(ERROR "Invalid SIMDVOXELIZER_BUILD_ISA value. Please select one of SSE, AVX, AVX2, or ALL.")
+    message(ERROR "Invalid ISPC_BUILD_ISA value. Please select one of SSE, AVX, AVX2, or ALL.")
   endif()
 
-  if(NOT SIMDVOXELIZER_COMPILER_SUPPORTS_AVX)
-    if(NOT SIMDVOXELIZER_WARNED_MISSING_AVX)
+  if(NOT ISPC_COMPILER_SUPPORTS_AVX)
+    if(NOT ISPC_WARNED_MISSING_AVX)
       message("Warning: Need at least version ${GCC_VERSION_REQUIRED_AVX} of gcc for AVX. Disabling AVX.\nTo compile for AVX, please switch to either 'ICC'-compiler, or upgrade your gcc version.")
-      set(SIMDVOXELIZER_WARNED_MISSING_AVX ON CACHE INTERNAL "Warned about missing AVX support.")
+      set(ISPC_WARNED_MISSING_AVX ON CACHE INTERNAL "Warned about missing AVX support.")
     endif()
   endif()
 
-  if(NOT SIMDVOXELIZER_COMPILER_SUPPORTS_AVX2)
-    if(NOT SIMDVOXELIZER_WARNED_MISSING_AVX2)
+  if(NOT ISPC_COMPILER_SUPPORTS_AVX2)
+    if(NOT ISPC_WARNED_MISSING_AVX2)
       message("Warning: Need at least version ${GCC_VERSION_REQUIRED_AVX2} of gcc for AVX2. Disabling AVX2.\nTo compile for AVX2, please switch to either 'ICC'-compiler, or upgrade your gcc version.")
-      set(SIMDVOXELIZER_WARNED_MISSING_AVX2 ON CACHE INTERNAL "Warned about missing AVX2 support.")
+      set(ISPC_WARNED_MISSING_AVX2 ON CACHE INTERNAL "Warned about missing AVX2 support.")
     endif()
   endif()
 
-  if(NOT SIMDVOXELIZER_COMPILER_SUPPORTS_AVX512)
-    if(NOT SIMDVOXELIZER_WARNED_MISSING_AVX2)
+  if(NOT ISPC_COMPILER_SUPPORTS_AVX512)
+    if(NOT ISPC_WARNED_MISSING_AVX2)
       message("Warning: Need at least version ${GCC_VERSION_REQUIRED_AVX512} of gcc for AVX512. Disabling AVX512.\nTo compile for AVX512, please switch to either 'ICC'-compiler, or upgrade your gcc version.")
-      set(SIMDVOXELIZER_WARNED_MISSING_AVX512 ON CACHE INTERNAL "Warned about missing AVX512 support.")
+      set(ISPC_WARNED_MISSING_AVX512 ON CACHE INTERNAL "Warned about missing AVX512 support.")
     endif()
   endif()
 
   if(THIS_IS_MIC)
     # whether to build in MIC/xeon phi support
-    set(SIMDVOXELIZER_BUILD_COI_DEVICE OFF CACHE BOOL "Build COI Device for MIC support?")
+    set(ISPC_BUILD_COI_DEVICE OFF CACHE BOOL "Build COI Device for MIC support?")
   endif()
 
   include(${PROJECT_SOURCE_DIR}/CMake/ispc.cmake)
@@ -84,27 +84,33 @@ macro(CONFIGURE_ISPC)
   INCLUDE_DIRECTORIES_ISPC(${PROJECT_BINARY_DIR})
 endmacro()
 
-set(SIMDVOXELIZERCOMMON_SOURCES
+set(SIMDVOXELIZER_SOURCES
   ispc/tasksys.cpp
   OctreeNode.cpp
   Octree.cpp
 )
 
-set(SIMDVOXELIZERCOMMON_PUBLIC_HEADERS
+set(SIMDVOXELIZER_PUBLIC_HEADERS
   OctreeNode.h
   Octree.h
 )
 
-set(SIMDVOXELIZERCOMMON_ISPC_SOURCES
+set(SIMDVOXELIZER_ISPC_SOURCES
   ispc/SIMDSparseVoxelizer.ispc
 )
+
+find_package(glm REQUIRED SYSTEM)
 
 include(ispc)
 CONFIGURE_ISPC()
 INCLUDE_DIRECTORIES_ISPC(${SIMDVOXELIZER_INCLUDE_DIRS})
-ISPC_COMPILE(${SIMDVOXELIZERCOMMON_ISPC_SOURCES})
-list(APPEND SIMDVOXELIZERCOMMON_SOURCES ${ISPC_OBJECTS})
+ISPC_COMPILE(${SIMDVOXELIZER_ISPC_SOURCES})
+list(APPEND SIMDVOXELIZER_SOURCES ${ISPC_OBJECTS})
 
-set(SIMDVOXELIZERCOMMON_LINK_LIBRARIES PUBLIC glm pthread stdc++)
+ADD_LIBRARY(
+    simdvoxelizer
+    ${SIMDVOXELIZER_SOURCES})
 
-common_library(SIMDVoxelizerCommon)
+TARGET_LINK_LIBRARIES(
+    simdvoxelizer
+    ${GLM_LIBRARIES} pthread stdc++)

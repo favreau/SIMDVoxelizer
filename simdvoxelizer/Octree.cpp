@@ -25,6 +25,8 @@
 
 #include "Octree.h"
 
+using namespace std;
+
 typedef std::map<uint64_t, OctreeNode> OctreeLevelMap;
 
 Octree::Octree(const std::vector<float> &events, float voxelSize,

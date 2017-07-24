@@ -23,6 +23,7 @@
 #define _Octree_h_
 
 #include <glm/glm.hpp>
+#include <stdint.h>
 #include <vector>
 
 #include "OctreeNode.h"

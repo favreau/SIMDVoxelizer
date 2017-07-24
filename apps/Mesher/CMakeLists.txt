@@ -17,7 +17,22 @@
 # along with this library; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+set(PROJECT_NAME Mesher)
 set(MESHER_SOURCES main.cpp)
-set(MESHER_LINK_LIBRARIES PUBLIC SIMDVoxelizerCommon)
+set(MESHER_LINK_LIBRARIES PUBLIC simdvoxelizer)
 
-common_application(Mesher)
+include_directories(${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+
+ADD_EXECUTABLE(
+    ${PROJECT_NAME}
+    ${MESHER_SOURCES}
+    )
+
+TARGET_LINK_LIBRARIES(
+    ${PROJECT_NAME}
+    ${MESHER_LINK_LIBRARIES}
+)
+
+# ------------------------------------------------------------
+INSTALL(TARGETS ${PROJECT_NAME} DESTINATION bin)
+# ------------------------------------------------------------

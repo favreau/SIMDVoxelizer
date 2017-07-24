@@ -24,7 +24,6 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
-#include <iostream>
 #include <limits>
 #include <map>
 #include <simdvoxelizer/Octree.h>
@@ -166,12 +165,12 @@ int main(int argc, char *argv[]) {
   }
 
   // Determine model bounding box
-  glm::vec3 minAABB = {std::numeric_limits<float>::max(),
-                       std::numeric_limits<float>::max(),
-                       std::numeric_limits<float>::max()};
-  glm::vec3 maxAABB = {-std::numeric_limits<float>::max(),
-                       -std::numeric_limits<float>::max(),
-                       -std::numeric_limits<float>::max()};
+  glm::vec3 minAABB(std::numeric_limits<float>::max(),
+                    std::numeric_limits<float>::max(),
+                    std::numeric_limits<float>::max());
+  glm::vec3 maxAABB(-std::numeric_limits<float>::max(),
+                    -std::numeric_limits<float>::max(),
+                    -std::numeric_limits<float>::max());
   for (uint64_t i = 0; i < events.size(); i += 5) {
     if (events[i + 4] != 0.f) {
       minAABB = {std::min(minAABB.x, events[i]),
