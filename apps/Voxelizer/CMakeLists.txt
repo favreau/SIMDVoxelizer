@@ -21,7 +21,7 @@ set(PROJECT_NAME Voxelizer)
 set(VOXELIZER_SOURCES main.cpp)
 set(VOXELIZER_LINK_LIBRARIES PUBLIC simdvoxelizer)
 
-include_directories(${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+include_directories(${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${GLM_INCLUDE_DIR})
 
 ADD_EXECUTABLE(
     ${PROJECT_NAME}
