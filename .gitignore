@@ -11,4 +11,5 @@ CMakeFiles
 *.includes
 *.creator*
 *.user
-
+build/
+.vscode
